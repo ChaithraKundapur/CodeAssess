@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.User;
+import com.example.demo.model.CodeResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
@@ -29,11 +30,7 @@ public class ReadXmlService {
     private final ReadFolder readFolder;
 
     public User getXml(final String path) throws IOException {
-      String folderData = path+"/pom.xml";
-
-
-       // System.out.println(folderData);
-
+        String folderData = path+"/pom.xml";
 
     File xmlFile = new File(folderData);
     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
@@ -47,7 +44,6 @@ public class ReadXmlService {
             user.setArtifactId(doc.getElementsByTagName("artifactId").item(0).getChildNodes().item(0).getNodeValue());
             user.setVersion(doc.getElementsByTagName("version").item(0).getChildNodes().item(0).getNodeValue());
             user.setDependencies(Collections.singletonList(doc.getElementsByTagName("dependencies").item(0).getTextContent()));
-    //user.setDependencies(Collections.singletonList(doc.getElementsByTagName("dependencies").item(0).getTextContent()));
 
         List<User> userList = new ArrayList< User >();
 
@@ -62,23 +58,122 @@ return user;
 }
 
 
+    public User doCodeAssessment(final String path) {
 
-    public  User getUser(Node node) {
-        // XMLReaderDOM domReader = new XMLReaderDOM();
-        User user = new User();
-        if (node.getNodeType() == Node.ELEMENT_NODE) {
-            Element element = (Element) node;
+        CodeResult codeResult = new CodeResult();
 
-            user.setArtifactId(getTagValue("artifactId", element));
+        List<File> filesArrayList = new ArrayList<File>();
+        List<File> directoryArrayList = new ArrayList<File>();
+        ArrayList<String> excludeArrayList = new ArrayList<String>();
+        excludeArrayList.add("target");
+        excludeArrayList.add(".mvn");
+        excludeArrayList.add(".settings");
+        excludeArrayList.add(".git");
 
 
+        File[] files = new File(path).listFiles();
+
+        User userData = new User();
+        for (File file : files) {
+
+            if (file.isFile()) {
+
+                String fileName = file.getName();
+
+                if ("pom.xml".equalsIgnoreCase(fileName)) {
+
+                    codeResult.setApplicationType("SPRINGBOOT");
+
+                } else if ("package.json".equalsIgnoreCase(fileName)) {
+                    codeResult.setApplicationType("NODEJS");
+                }
+
+                filesArrayList.add(file);
+            } else if (file.isDirectory()) {
+
+                boolean isExclude = excludeArrayList.contains(file.getName());
+                if (!isExclude) {
+                    directoryArrayList.add(file);
+                }
+
+            }
         }
-        return user;
+
+//        System.out.println("" + filesArrayList);
+//        System.out.println("" + directoryArrayList);
+
+        for (File f : directoryArrayList) {
+
+            if(f.getName() != null && !f.getName().isEmpty()) {
+
+                userData = processDirectory(f.getAbsolutePath(), codeResult);
+
+
+//                System.out.println("check1000-->" + userData.getUrl());
+                break;
+            }
+        }
+
+
+        return userData;
     }
 
-    public  String getTagValue(String tag, Element element) {
-        NodeList nodeList = element.getElementsByTagName(tag).item(0).getChildNodes();
-        Node node = (Node) nodeList.item(0);
-        return node.getNodeValue();
+    public  User processDirectory (String path, CodeResult codeResult) {
+        User a = new User();
+        File root = new File(path);
+        File[] list = root.listFiles();
+
+//        if (list == null)
+//            return;
+
+
+        for (File f : list) {
+            if (f.isDirectory()) {
+                processDirectory(f.getAbsolutePath(), codeResult);
+                //System.out.println("Dir:" + f.getAbsoluteFile());
+            } else {
+
+                if (f.getName().equalsIgnoreCase("application.properties")) {
+                     a = parseApplicationProperties(f.getAbsolutePath());
+
+//                    System.out.println("check1-->"+a.getUrl());
+
+
+                }
+
+
+
+                //System.out.println("File:" + f.getAbsoluteFile());
+            }
+        }
+        return a;
+    }
+
+    public User parseApplicationProperties(String absolutePath) {
+
+        User user = new User();
+
+        String data;
+        try {
+            InputStream input = new FileInputStream(absolutePath);
+            Properties prop = new Properties();
+            prop.load(input);
+
+//            System.out.println(absolutePath+"-----------------");
+
+//            System.out.println(prop.getProperty("spring.datasource.url"));
+//            System.out.println(prop.getProperty("spring.datasource.username"));
+//            System.out.println(prop.getProperty("spring.datasource.driver-class-name"));
+//            System.out.println(prop.getProperty("spring.jpa.database-platform"));
+            user.setUrl(prop.getProperty("spring.datasource.url"));
+            user.setUsername(prop.getProperty("spring.datasource.username"));
+            user.setPlatform(prop.getProperty("spring.jpa.database-platform"));
+
+//            System.out.println(user.getUrl()+"-------------123");
+        } catch (Exception e) {
+
+        }
+//        System.out.println(user.getUrl()+"-------------123");
+        return user;
     }
 }

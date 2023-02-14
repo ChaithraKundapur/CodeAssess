@@ -4,7 +4,11 @@
 //import com.example.demo.User;
 //import com.example.demo.entity.UserEntity;
 //import org.springframework.data.jpa.repository.JpaRepository;
+//import org.springframework.stereotype.Repository;
 //
-//public interface UserRepository extends JpaRepository<UserEntity,Long>{
+//import java.util.List;
 //
+//@Repository
+//public interface UserRepository extends JpaRepository<UserEntity,Integer>{
+//    List<UserEntity> findByTitleContainingOrContentContaining(String text, String textAgain);
 //}

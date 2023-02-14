@@ -20,24 +20,26 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class ReadXmlController {
     private final ReadXmlService readXmlService;
-    private final AppProperties  myAppProperties;
-   /* @GetMapping("/artifactid")
-    public ResponseEntity<?>getArtifactid() throws IOException {
-
-//    String data = String.valueOf(readXmlService.getXml());
-
-        return ResponseEntity.ok(data);
-    }*/
-
+//    private final AppProperties  myAppProperties;
 
     @PostMapping("/get-pom")
     public ResponseEntity<?> getPom(@RequestBody RequestDto requestDto) throws IOException {
         User data = readXmlService.getXml(requestDto.getPath());
+        User data1 = readXmlService.doCodeAssessment(requestDto.getPath());
+//        System.out.println(data1.getUrl()+"check2");
         ResponseDto responseDto = new ResponseDto();
+       // ResponseDto responseDto1 = new ResponseDto();
 
+//        User d = new User();
+//        User dat = readXmlService.parseApplicationProperties(requestDto.getPath());
         responseDto.setData(data);
-       // responseDto.setAppData(myAppProperties.getTitle());
+        responseDto.setData1(data1);
+
+//        System.out.println(dat.getUrl()+"============================");
+
         return ResponseEntity.ok(responseDto);
+
+
     }
 
 

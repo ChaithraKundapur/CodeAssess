@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -21,6 +22,12 @@ import java.util.List;
 
 @SpringBootApplication
 public class DemoApplication {
+//	@Bean
+//	public DataSource dataSource() {
+//		return DataSourceBuilder.create()
+//				.type(HikariDataSource.class)
+//				.build();
+//	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(DemoApplication.class, args);

@@ -10,5 +10,5 @@ import lombok.*;
 @ToString
 public class ResponseDto {
     private User data;
-   // private String AppData;
+    private User data1;
 }
