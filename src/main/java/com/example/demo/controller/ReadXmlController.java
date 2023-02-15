@@ -3,7 +3,6 @@ package com.example.demo.controller;
 import com.example.demo.User;
 import com.example.demo.dto.RequestDto;
 import com.example.demo.dto.ResponseDto;
-import com.example.demo.service.AppProperties;
 import com.example.demo.service.ReadXmlService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.util.List;
 
 
 @RestController
@@ -25,7 +25,7 @@ public class ReadXmlController {
     @PostMapping("/get-pom")
     public ResponseEntity<?> getPom(@RequestBody RequestDto requestDto) throws IOException {
         User data = readXmlService.getXml(requestDto.getPath());
-        User data1 = readXmlService.doCodeAssessment(requestDto.getPath());
+        List<User> data1 = readXmlService.doCodeAssessment(requestDto.getPath());
 //        System.out.println(data1.getUrl()+"check2");
         ResponseDto responseDto = new ResponseDto();
        // ResponseDto responseDto1 = new ResponseDto();

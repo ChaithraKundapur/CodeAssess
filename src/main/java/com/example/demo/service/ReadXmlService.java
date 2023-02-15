@@ -57,10 +57,10 @@ public class ReadXmlService {
 return user;
 }
 
-
-    public User doCodeAssessment(final String path) {
+    public List<User> doCodeAssessment(final String path) {
 
         CodeResult codeResult = new CodeResult();
+        List<User> userData = new ArrayList<User>();
 
         List<File> filesArrayList = new ArrayList<File>();
         List<File> directoryArrayList = new ArrayList<File>();
@@ -72,8 +72,6 @@ return user;
 
 
         File[] files = new File(path).listFiles();
-
-        User userData = new User();
         for (File file : files) {
 
             if (file.isFile()) {
@@ -99,54 +97,43 @@ return user;
             }
         }
 
-//        System.out.println("" + filesArrayList);
-//        System.out.println("" + directoryArrayList);
+        System.out.println("" + filesArrayList);
+        System.out.println("" + directoryArrayList);
 
         for (File f : directoryArrayList) {
-
+            System.out.println("check11---->"+f.getAbsolutePath());
             if(f.getName() != null && !f.getName().isEmpty()) {
+                System.out.println("check4---->" + f.getAbsolutePath());
+                userData = processDirectory(f.getAbsolutePath(), codeResult,userData);
 
-                userData = processDirectory(f.getAbsolutePath(), codeResult);
-
-
-//                System.out.println("check1000-->" + userData.getUrl());
-                break;
             }
         }
-
-
         return userData;
     }
 
-    public  User processDirectory (String path, CodeResult codeResult) {
+    public  List<User> processDirectory (String path, CodeResult codeResult,List<User> userData) {
         User a = new User();
         File root = new File(path);
         File[] list = root.listFiles();
 
-//        if (list == null)
-//            return;
-
-
         for (File f : list) {
+            System.out.println("File :" + f);
+            System.out.println("File Directory :" + f.isDirectory());
+
             if (f.isDirectory()) {
-                processDirectory(f.getAbsolutePath(), codeResult);
-                //System.out.println("Dir:" + f.getAbsoluteFile());
-            } else {
+                processDirectory(f.getAbsolutePath(), codeResult,userData);
+            }
+            else {
+                System.out.println("Dir1:" + f.getAbsoluteFile());
 
                 if (f.getName().equalsIgnoreCase("application.properties")) {
-                     a = parseApplicationProperties(f.getAbsolutePath());
-
-//                    System.out.println("check1-->"+a.getUrl());
-
-
+                    userData.add(parseApplicationProperties(f.getAbsolutePath()));
                 }
-
-
-
-                //System.out.println("File:" + f.getAbsoluteFile());
             }
         }
-        return a;
+        System.out.println("user data 1:" + userData.size());
+
+        return userData;
     }
 
     public User parseApplicationProperties(String absolutePath) {
@@ -159,21 +146,13 @@ return user;
             Properties prop = new Properties();
             prop.load(input);
 
-//            System.out.println(absolutePath+"-----------------");
-
-//            System.out.println(prop.getProperty("spring.datasource.url"));
-//            System.out.println(prop.getProperty("spring.datasource.username"));
-//            System.out.println(prop.getProperty("spring.datasource.driver-class-name"));
-//            System.out.println(prop.getProperty("spring.jpa.database-platform"));
             user.setUrl(prop.getProperty("spring.datasource.url"));
             user.setUsername(prop.getProperty("spring.datasource.username"));
             user.setPlatform(prop.getProperty("spring.jpa.database-platform"));
 
-//            System.out.println(user.getUrl()+"-------------123");
         } catch (Exception e) {
 
         }
-//        System.out.println(user.getUrl()+"-------------123");
         return user;
     }
 }

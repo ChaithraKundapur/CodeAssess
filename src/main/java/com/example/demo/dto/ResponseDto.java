@@ -3,6 +3,8 @@ package com.example.demo.dto;
 import com.example.demo.User;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -10,5 +12,5 @@ import lombok.*;
 @ToString
 public class ResponseDto {
     private User data;
-    private User data1;
+    private List<User> data1;
 }
