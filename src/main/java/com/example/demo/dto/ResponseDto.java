@@ -12,6 +12,5 @@ import java.util.List;
 @ToString
 public class ResponseDto {
     private User data;
-//    private List<User> data1;
-//    private User data3;
+
 }
