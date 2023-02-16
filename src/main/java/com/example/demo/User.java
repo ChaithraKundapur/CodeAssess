@@ -19,6 +19,5 @@ public class User {
     private List<Dependency> dependencies;
     private String url;
     private String username;
-    private String password;
     private String platform;
 }

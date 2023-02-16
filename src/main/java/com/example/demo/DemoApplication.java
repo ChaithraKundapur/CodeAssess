@@ -22,15 +22,12 @@ import java.util.List;
 
 @SpringBootApplication
 public class DemoApplication {
-//	@Bean
-//	public DataSource dataSource() {
-//		return DataSourceBuilder.create()
-//				.type(HikariDataSource.class)
-//				.build();
-//	}
+
 
 	public static void main(String[] args) {
+
 		SpringApplication.run(DemoApplication.class, args);
+
 	}
 
 }
