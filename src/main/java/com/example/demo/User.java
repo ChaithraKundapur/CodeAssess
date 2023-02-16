@@ -2,7 +2,7 @@ package com.example.demo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.maven.model.Dependency;
 
 import java.util.List;
 
@@ -14,8 +14,9 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include. NON_NULL)
 public class User {
     private String artifactId;
+    private String name;
     private String version;
-    private List<String> dependencies;
+    private List<Dependency> dependencies;
     private String url;
     private String username;
     private String password;

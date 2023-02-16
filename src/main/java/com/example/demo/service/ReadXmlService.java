@@ -3,6 +3,9 @@ package com.example.demo.service;
 import com.example.demo.User;
 import com.example.demo.model.CodeResult;
 import lombok.RequiredArgsConstructor;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -13,10 +16,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -32,30 +32,30 @@ public class ReadXmlService {
     public User getXml(final String path) throws IOException {
         String folderData = path+"/pom.xml";
 
-    File xmlFile = new File(folderData);
-    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-    DocumentBuilder dBuilder;
+        File xmlFile = new File(folderData);
+        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder dBuilder;
         User user = new User();
         try {
-        dBuilder = dbFactory.newDocumentBuilder();
-        Document doc = dBuilder.parse(xmlFile);
-        doc.getDocumentElement().normalize();
-        System.out.println("Root element :" + doc.getDocumentElement().getNodeName());
+            dBuilder = dbFactory.newDocumentBuilder();
+            Document doc = dBuilder.parse(xmlFile);
+            doc.getDocumentElement().normalize();
+            System.out.println("Root element :" + doc.getDocumentElement().getNodeName());
             user.setArtifactId(doc.getElementsByTagName("artifactId").item(0).getChildNodes().item(0).getNodeValue());
             user.setVersion(doc.getElementsByTagName("version").item(0).getChildNodes().item(0).getNodeValue());
-            user.setDependencies(Collections.singletonList(doc.getElementsByTagName("dependencies").item(0).getTextContent()));
+          //  user.setDependencies(Collections.singletonList(doc.getElementsByTagName("dependencies").item(0).getTextContent()));
 
-        List<User> userList = new ArrayList< User >();
+            List<User> userList = new ArrayList< User >();
 
 
-        for (User emp: userList) {
-            System.out.println(emp.toString());
+            for (User emp: userList) {
+                System.out.println(emp.toString());
+            }
+        } catch (SAXException | ParserConfigurationException | IOException e1) {
+            e1.printStackTrace();
         }
-    } catch (SAXException | ParserConfigurationException | IOException e1) {
-        e1.printStackTrace();
+        return user;
     }
-return user;
-}
 
     public List<User> doCodeAssessment(final String path) {
 
@@ -155,4 +155,54 @@ return user;
         }
         return user;
     }
-}
+
+    public User parse(String path){
+        User user = new User();
+
+
+            // Clone the repository
+//                Git.cloneRepository()
+//                        .setURI(repositoryLink)
+//                        .setDirectory(new File("repository"))
+//                        .call();
+
+            // Load the pom.xml file
+            File pomFile = new File("repository/pom.xml");
+            MavenXpp3Reader reader = new MavenXpp3Reader();
+        Model model = null;
+        try {
+            model = reader.read(new FileReader(pomFile));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (XmlPullParserException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Print the project name and version
+            System.out.println("Project name: " + model.getName());
+            System.out.println("Project version: " + model.getVersion());
+            System.out.println("Project artifactId: " + model.getArtifactId());
+            System.out.println("Project Dependencies: " + model.getDependencies());
+            user.setName(model.getName());
+            user.setArtifactId(model.getName());
+            user.setVersion(model.getVersion());
+            user.setDependencies(model.getDependencies());
+
+            // Load the application.properties file
+            File propsFile = new File("repository/src/main/resources/application.properties");
+            Properties props = new Properties();
+        try {
+            props.load(new FileReader(propsFile));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        // Print the properties
+            System.out.println("spring.datasource.url: " + props.getProperty("spring.datasource.url"));
+            System.out.println("spring.datasource.username: " + props.getProperty("spring.datasource.username"));
+            System.out.println("spring.jpa.database-platform: " + props.getProperty("spring.jpa.database-platform"));
+                user.setUrl(props.getProperty("spring.datasource.url"));
+                user.setUsername(props.getProperty("spring.datasource.username"));
+                user.setPlatform(props.getProperty("spring.jpa.database-platform"));
+            return user;
+    }
+ }
