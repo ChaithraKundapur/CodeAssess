@@ -13,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include. NON_NULL)
 public class User {
+    private String Application_Type;
     private String artifactId;
     private String name;
     private String version;
