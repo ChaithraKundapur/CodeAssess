@@ -22,4 +22,5 @@ public class User {
     private String url;
     private String username;
     private String driverClassName;
+    private String password;
 }

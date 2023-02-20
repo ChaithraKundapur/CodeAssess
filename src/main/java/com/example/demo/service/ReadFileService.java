@@ -94,6 +94,7 @@ public class ReadFileService {
             user.setUrl(props.getProperty("spring.datasource.url"));
             user.setUsername(props.getProperty("spring.datasource.username"));
             user.setDriverClassName(props.getProperty("spring.datasource.driverClassName"));
+            user.setPassword(props.getProperty("spring.datasource.password"));
 
 
             // Clean up cloned repository
