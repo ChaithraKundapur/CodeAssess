@@ -18,7 +18,8 @@ public class User {
     private String name;
     private String version;
     private List<Dependency> dependencies;
+    private Long port;
     private String url;
     private String username;
-    private String platform;
+    private String driverClassName;
 }

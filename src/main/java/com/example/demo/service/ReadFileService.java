@@ -90,9 +90,10 @@ public class ReadFileService {
             //System.out.println("spring.datasource.username: " + props.getProperty("spring.datasource.username"));
             //System.out.println("spring.jpa.database-platform: " + props.getProperty("spring.jpa.database-platform"));
 
+            user.setPort(Long.valueOf(props.getProperty("server.port")));
             user.setUrl(props.getProperty("spring.datasource.url"));
             user.setUsername(props.getProperty("spring.datasource.username"));
-            user.setPlatform(props.getProperty("spring.jpa.database-platform"));
+            user.setDriverClassName(props.getProperty("spring.datasource.driverClassName"));
 
 
             // Clean up cloned repository
