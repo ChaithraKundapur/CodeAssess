@@ -63,11 +63,6 @@ public class ReadFileService {
             throw new RuntimeException(e);
         }
 
-        // Print the project name and version
-        //System.out.println("Project name: " + model.getName());
-        //System.out.println("Project version: " + model.getVersion());
-        //System.out.println("Project artifactId: " + model.getArtifactId());
-        //System.out.println("Project Dependencies: " + model.getDependencies());
 
         user.setName(model.getName());
         user.setArtifactId(model.getName());
@@ -76,14 +71,6 @@ public class ReadFileService {
 
 
         // Load the application.properties file
-//            File propsFile = new File("repository/src/main/resources/application.properties");
-//            Properties props = new Properties();
-//            try {
-//                props.load(new FileReader(propsFile));
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
-
 
         File propsFile = new File("repository/src/main/resources/application.properties");
 
@@ -120,21 +107,7 @@ public class ReadFileService {
                 System.out.println("No application.properties file found or it has no values");
             }
 
-
         }
-
-
-        // Print the properties
-        //System.out.println("spring.datasource.url: " + props.getProperty("spring.datasource.url"));
-        //System.out.println("spring.datasource.username: " + props.getProperty("spring.datasource.username"));
-        //System.out.println("spring.jpa.database-platform: " + props.getProperty("spring.jpa.database-platform"));
-
-//            user.setPort(Long.valueOf(props.getProperty("server.port")));
-//            user.setUrl(props.getProperty("spring.datasource.url"));
-//            user.setUsername(props.getProperty("spring.datasource.username"));
-//            user.setDriverClassName(props.getProperty("spring.datasource.driverClassName"));
-//            user.setPassword(props.getProperty("spring.datasource.password"));
-
 
         // Clean up cloned repository
         FileUtils.deleteDirectory(new File("repository"));
