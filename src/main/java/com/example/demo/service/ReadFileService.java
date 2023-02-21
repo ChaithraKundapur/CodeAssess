@@ -46,64 +46,102 @@ public class ReadFileService {
             // Print the details
             System.out.println(appProperties.toString());
         } else {
-           // System.out.println("The repository is not a Spring Boot application.");
+            // System.out.println("The repository is not a Spring Boot application.");
             user.setApplication_Type("Spring-Boot Application");
         }
 
 
-            // Load the pom.xml file
+        // Load the pom.xml file
         pomFile = new File("repository/pom.xml");
-            MavenXpp3Reader reader = new MavenXpp3Reader();
-            Model model = null;
-            try {
-                model = reader.read(new FileReader(pomFile));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (XmlPullParserException e) {
-                throw new RuntimeException(e);
+        MavenXpp3Reader reader = new MavenXpp3Reader();
+        Model model = null;
+        try {
+            model = reader.read(new FileReader(pomFile));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (XmlPullParserException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Print the project name and version
+        //System.out.println("Project name: " + model.getName());
+        //System.out.println("Project version: " + model.getVersion());
+        //System.out.println("Project artifactId: " + model.getArtifactId());
+        //System.out.println("Project Dependencies: " + model.getDependencies());
+
+        user.setName(model.getName());
+        user.setArtifactId(model.getName());
+        user.setVersion(model.getVersion());
+        user.setDependencies(model.getDependencies());
+
+
+        // Load the application.properties file
+//            File propsFile = new File("repository/src/main/resources/application.properties");
+//            Properties props = new Properties();
+//            try {
+//                props.load(new FileReader(propsFile));
+//            } catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
+
+
+        File propsFile = new File("repository/src/main/resources/application.properties");
+
+        Properties properties = new Properties();
+        try {
+            properties.load(new FileReader(propsFile));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        String port = properties.getProperty("server.port");
+        String url = properties.getProperty("spring.datasource.url");
+        String version = properties.getProperty("spring.datasource.username");
+        String driverClassName = properties.getProperty("spring.datasource.driverClassName");
+        String password = properties.getProperty("spring.datasource.password");
+
+
+        if (port != null || url != null || version != null || driverClassName != null || password != null) {
+            if (port != null) {
+                user.setPort(Long.valueOf(properties.getProperty("server.port")));
+            }
+            if (url != null) {
+                user.setUrl(properties.getProperty("spring.datasource.url"));
+            }
+            if (version != null) {
+                user.setUsername(properties.getProperty("spring.datasource.username"));
+            }
+            if (driverClassName != null) {
+                user.setDriverClassName(properties.getProperty("spring.datasource.driverClassName"));
+            }
+            if (password != null) {
+                user.setPassword(properties.getProperty("spring.datasource.password"));
+            } else {
+                System.out.println("No application.properties file found or it has no values");
             }
 
-            // Print the project name and version
-            //System.out.println("Project name: " + model.getName());
-            //System.out.println("Project version: " + model.getVersion());
-            //System.out.println("Project artifactId: " + model.getArtifactId());
-            //System.out.println("Project Dependencies: " + model.getDependencies());
-
-            user.setName(model.getName());
-            user.setArtifactId(model.getName());
-            user.setVersion(model.getVersion());
-            user.setDependencies(model.getDependencies());
-
-
-            // Load the application.properties file
-            File propsFile = new File("repository/src/main/resources/application.properties");
-            Properties props = new Properties();
-            try {
-                props.load(new FileReader(propsFile));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-
-            // Print the properties
-            //System.out.println("spring.datasource.url: " + props.getProperty("spring.datasource.url"));
-            //System.out.println("spring.datasource.username: " + props.getProperty("spring.datasource.username"));
-            //System.out.println("spring.jpa.database-platform: " + props.getProperty("spring.jpa.database-platform"));
-
-            user.setPort(Long.valueOf(props.getProperty("server.port")));
-            user.setUrl(props.getProperty("spring.datasource.url"));
-            user.setUsername(props.getProperty("spring.datasource.username"));
-            user.setDriverClassName(props.getProperty("spring.datasource.driverClassName"));
-            user.setPassword(props.getProperty("spring.datasource.password"));
-
-
-            // Clean up cloned repository
-            FileUtils.deleteDirectory(new File("repository"));
-
-
-            return user;
 
         }
+
+
+        // Print the properties
+        //System.out.println("spring.datasource.url: " + props.getProperty("spring.datasource.url"));
+        //System.out.println("spring.datasource.username: " + props.getProperty("spring.datasource.username"));
+        //System.out.println("spring.jpa.database-platform: " + props.getProperty("spring.jpa.database-platform"));
+
+//            user.setPort(Long.valueOf(props.getProperty("server.port")));
+//            user.setUrl(props.getProperty("spring.datasource.url"));
+//            user.setUsername(props.getProperty("spring.datasource.username"));
+//            user.setDriverClassName(props.getProperty("spring.datasource.driverClassName"));
+//            user.setPassword(props.getProperty("spring.datasource.password"));
+
+
+        // Clean up cloned repository
+        FileUtils.deleteDirectory(new File("repository"));
+
+
+        return user;
+    }
 
     private boolean isSpringBootApp(File pomFile) throws IOException, XmlPullParserException {
         Model pomModel = new MavenXpp3Reader().read(new FileInputStream(pomFile));
