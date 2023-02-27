@@ -4,7 +4,13 @@ import com.example.demo.User;
 import com.example.demo.dto.RequestDto;
 import com.example.demo.dto.ResponseDto;
 import com.example.demo.service.ReadFileService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.FileUtils;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -25,6 +31,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -49,6 +57,85 @@ public class ReadXmlController {
 
     }
 
+
+    @PostMapping("/parse")
+    public String cloneGitHubRepository(@RequestBody String payload) {
+        try {
+            // Parse the JSON payload
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode jsonNode = mapper.readTree(payload);
+
+            String gitHubUrl = jsonNode.get("gitHubUrl").asText();
+            String accessToken = jsonNode.get("accessToken").asText();
+            String branch = jsonNode.get("branch").asText();
+
+            // Clone the repository
+            String repoName = gitHubUrl.substring(gitHubUrl.lastIndexOf("/") + 1, gitHubUrl.lastIndexOf("."));
+            String command = "git clone -b " + branch + " " + gitHubUrl + " " + repoName;
+            Process process = Runtime.getRuntime().exec(command, null, new File(System.getProperty("java.io.tmpdir")));
+            process.waitFor();
+
+            // Read the pom.xml file and parse the application name and version
+            File pomFile = new File(System.getProperty("java.io.tmpdir"), repoName + "/pom.xml");
+            if (pomFile.exists()) {
+                MavenXpp3Reader reader = new MavenXpp3Reader();
+                Model model = reader.read(new BufferedReader(new InputStreamReader(FileUtils.openInputStream(pomFile))));
+                String appName = model.getName();
+                String appVersion = model.getVersion();
+                List<Dependency> dependencies = model.getDependencies();
+                StringBuilder sb = new StringBuilder();
+                sb.append("Spring Boot Application Name: ").append(appName)
+                        .append(", Version: ").append(appVersion).append("\n");
+                sb.append("Dependencies:\n");
+                for (Dependency dependency : dependencies) {
+                    sb.append(dependency.getGroupId()).append(":")
+                            .append(dependency.getArtifactId()).append(":")
+                            .append(dependency.getVersion()).append("\n");
+                }
+                // Read the application.properties file and add its contents to the response
+                File propertiesFile = new File(System.getProperty("java.io.tmpdir"), repoName + "/src/main/resources/application.properties");
+                if (propertiesFile.exists()) {
+                    Properties props = new Properties();
+                    props.load(new FileReader(propertiesFile));
+                    sb.append("Properties:\n");
+                    for (String key : props.stringPropertyNames()) {
+                        String value = props.getProperty(key);
+                        sb.append(key).append("=").append(value).append("\n");
+                    }
+                }
+                return sb.toString();
+            }
+
+            // Read the package.json file and parse the application name and version
+            File packageFile = new File(System.getProperty("java.io.tmpdir"), repoName + "/package.json");
+            if (packageFile.exists()) {
+                JsonNode packageNode = mapper.readTree(packageFile);
+                String appName = packageNode.get("name").asText();
+                String appVersion = packageNode.get("version").asText();
+                JsonNode dependenciesNode = packageNode.get("dependencies");
+                StringBuilder sb = new StringBuilder();
+                sb.append("Node.js Application Name: ").append(appName)
+                        .append(", Version: ").append(appVersion).append("\n");
+                sb.append("Dependencies:\n");
+                Iterator<String> it = dependenciesNode.fieldNames();
+                while (it.hasNext()) {
+                    String key = it.next();
+                    String value = dependenciesNode.get(key).asText();
+                    sb.append(key).append(":").append(value).append("\n");
+                }
+                return sb.toString();
+            }
+
+            return "Unknown application type.";
+
+        } catch (IOException | InterruptedException | XmlPullParserException e) {
+            e.printStackTrace();
+            return "Error cloning repository.";
+        }
+    }
+
+
+    
 
     @PostMapping("/test")
     public ResponseEntity<?> cloneGitHubRepo(@RequestBody Map<String, String> request) {
