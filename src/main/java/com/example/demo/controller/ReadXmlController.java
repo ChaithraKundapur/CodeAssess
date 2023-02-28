@@ -160,12 +160,36 @@ public class ReadXmlController {
             }
 
 
+//            else if (fileType.equals("Node.js")) {
+//                File packageJsonFile = new File(tempDirectory.toString() + "/package.json");
+//                Map<String, Object> packageJsonContent = getPackageJsonContent(packageJsonFile);
+//                // return the Node.js project info
+//                System.out.println(packageJsonContent);
+//                return ResponseEntity.ok().body(Map.of("type", fileType, "Details", packageJsonContent));
+//            }
             else if (fileType.equals("Node.js")) {
                 File packageJsonFile = new File(tempDirectory.toString() + "/package.json");
                 Map<String, Object> packageJsonContent = getPackageJsonContent(packageJsonFile);
-                // return the Node.js project info
-                System.out.println(packageJsonContent);
-                return ResponseEntity.ok().body(Map.of("type", fileType, "Details", packageJsonContent));
+                // extract the Node.js project info
+                Map<String, Object> nodeJsInfo = new HashMap<>();
+                nodeJsInfo.put("name", packageJsonContent.get("name"));
+                nodeJsInfo.put("version", packageJsonContent.get("version"));
+                nodeJsInfo.put("description", packageJsonContent.get("description"));
+                nodeJsInfo.put("author", packageJsonContent.get("author"));
+                nodeJsInfo.put("license", packageJsonContent.get("license"));
+                // extract dependencies
+                Map<String, Object> dependencies = (Map<String, Object>) packageJsonContent.get("dependencies");
+                // return the Node.js project info and dependencies
+                Map<String, Object> response = new HashMap<>();
+                response.put("type", fileType);
+                response.put("name", nodeJsInfo.get("name"));
+                response.put("version", nodeJsInfo.get("version"));
+                response.put("description", nodeJsInfo.get("description"));
+                response.put("author", nodeJsInfo.get("author"));
+                response.put("license", nodeJsInfo.get("license"));
+                response.put("dependencies", dependencies);
+                System.out.println(response);
+                return ResponseEntity.ok().body(response);
             }
 
             else {
