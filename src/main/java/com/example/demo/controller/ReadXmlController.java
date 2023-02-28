@@ -4,6 +4,8 @@ import com.example.demo.User;
 import com.example.demo.dto.RequestDto;
 import com.example.demo.dto.ResponseDto;
 import com.example.demo.service.ReadFileService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -154,14 +156,19 @@ public class ReadXmlController {
                 Properties applicationProperties = getPropertiesFromFile(applicationPropertiesFile);
                 // return the Spring Boot project info
                 return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "version", springBootVersion, "properties", applicationProperties, "dependencies", dependencies));
-            } else if (fileType.equals("Node.js")) {
+                        Map.of("type", fileType, "version", springBootVersion, "properties", applicationProperties, "dependencies", dependencies ));
+            }
+
+
+            else if (fileType.equals("Node.js")) {
                 File packageJsonFile = new File(tempDirectory.toString() + "/package.json");
-                Properties packageJsonProperties = getPropertiesFromFile(packageJsonFile);
+                Map<String, Object> packageJsonContent = getPackageJsonContent(packageJsonFile);
                 // return the Node.js project info
-                return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "version", packageJsonProperties));
-            } else {
+                System.out.println(packageJsonContent);
+                return ResponseEntity.ok().body(Map.of("type", fileType, "Details", packageJsonContent));
+            }
+
+            else {
                 // unsupported project type
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                         Map.of("error", "Unsupported project type."));
@@ -227,10 +234,6 @@ public class ReadXmlController {
         return "";
     }
 
-
-//
-
-
     private Map<String, String> getDependenciesFromPomXmlFile(File pomXmlFile) throws IOException {
         Map<String, String> dependencies = new HashMap<>();
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
@@ -272,6 +275,7 @@ public class ReadXmlController {
         FileInputStream fis = new FileInputStream(file);
         try {
             properties.load(fis);
+
         } catch (IOException e) {
             throw new IOException("Failed to load properties from file: " + file.getAbsolutePath(), e);
         } finally {
@@ -279,6 +283,16 @@ public class ReadXmlController {
         }
         return properties;
     }
+
+    private Map<String, Object> getPackageJsonContent(File file) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        try (Reader reader = new FileReader(file)) {
+            return mapper.readValue(reader, new TypeReference<Map<String,Object>>(){});
+        } catch (JsonProcessingException e) {
+            throw new IOException("Failed to parse package.json file: " + file.getAbsolutePath(), e);
+        }
+    }
+
 
 
 //    @PostMapping("/test")
