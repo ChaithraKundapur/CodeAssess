@@ -20,22 +20,47 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
 
 @CrossOrigin(origins = "*")
 @RestController
 @RequiredArgsConstructor
 public class ReadXmlController {
 
-
     @PostMapping("/parse")
     public ResponseEntity<?> cloneGitHubPublicRepo(@RequestBody Map<String, String> request) {
         String repoPath = request.get("repoPath");
 
         try {
+
+            // Traverse all files in the repository and count total lines of code
+            AtomicInteger totalLinesOfCode = new AtomicInteger(0);
+            Files.walk(Path.of(repoPath))
+                    .filter(Files::isRegularFile)
+                    .forEach(file -> {
+                        try {
+                            totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
+                           // totalLinesOfCode.addAndGet(Files.readAllLines(file, StandardCharsets.UTF_8).size());
+                            //totalLinesOfCode.addAndGet(Files.readAllLines(file, StandardCharsets.UTF_8).);
+//                            totalLinesOfCode.addAndGet(Files.readAllLines(file, Charset.forName("ISO-8859-1")).size());
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+
+
             // Parse the appropriate file depending on the project type
             String fileType = determineProjectType(Path.of(repoPath));
             if (fileType.equals("Spring Boot")) {
@@ -44,13 +69,32 @@ public class ReadXmlController {
                 String springBootVersion = getVersionFromPomXmlFile(pomXmlFile);
                 Map<String, String> dependencies = getDependenciesFromPomXmlFile(pomXmlFile);
                 Properties applicationProperties = getPropertiesFromFile(applicationPropertiesFile);
+
+
                 // delete the cloned repository from the provided path
                 FileUtils.deleteDirectory(new File(repoPath));
 
                 // return the Spring Boot project info
                 return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "version", springBootVersion, "properties", applicationProperties, "dependencies", dependencies));
-            } else if (fileType.equals("Node.js")) {
+                        Map.of("type", fileType, "version", springBootVersion, "properties", applicationProperties, "dependencies", dependencies, "totalLinesOfCode", totalLinesOfCode.get()));
+            }
+            else if (fileType.equals("Node.js")) {
+
+                // Traverse all files in the repository and count total lines of code
+                AtomicInteger totalLinesOfCode1 = new AtomicInteger(0);
+                Files.walk(Path.of(repoPath))
+                        .filter(Files::isRegularFile)
+                        .forEach(file -> {
+                            try {
+                              //  totalLinesOfCode1.addAndGet(Files.readAllLines(file).size());
+                               totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
+
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        });
+
+
                 File packageJsonFile = new File(repoPath + "/package.json");
                 Map<String, Object> packageJsonContent = getPackageJsonContent(packageJsonFile);
                 // extract the Node.js project info
@@ -64,6 +108,7 @@ public class ReadXmlController {
                 Map<String, Object> dependencies = (Map<String, Object>) packageJsonContent.get("dependencies");
                 // return the Node.js project info and dependencies
                 Map<String, Object> response = new HashMap<>();
+                response.put("totalLinesOfCode", totalLinesOfCode1.get());
                 response.put("type", fileType);
                 response.put("name", nodeJsInfo.get("name"));
                 response.put("version", nodeJsInfo.get("version"));
@@ -71,22 +116,28 @@ public class ReadXmlController {
                 response.put("author", nodeJsInfo.get("author"));
                 response.put("license", nodeJsInfo.get("license"));
                 response.put("dependencies", dependencies);
+
+
                 // delete the cloned repository from the provided path
                 FileUtils.deleteDirectory(new File(repoPath));
+
                 return ResponseEntity.ok().body(response);
-            } else {
+            }
+            else {
                 // unsupported project type
                 // delete the cloned repository from the provided path
                 FileUtils.deleteDirectory(new File(repoPath));
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                         Map.of("error", "Unsupported project type."));
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             // error occurred during parsing or deleting the cloned repository
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     Map.of("error", "An error occurred: " + e.getMessage()));
         }
     }
+
 
     private String determineProjectType(Path projectDirectory) {
         // Check if the directory contains a pom.xml file
@@ -177,7 +228,6 @@ public class ReadXmlController {
         return dependencies;
     }
 
-
     private Properties getPropertiesFromFile(File file) throws IOException {
         Properties properties = new Properties();
         FileInputStream fis = new FileInputStream(file);
@@ -203,6 +253,5 @@ public class ReadXmlController {
     }
 
 
-}
-
+    }
 
