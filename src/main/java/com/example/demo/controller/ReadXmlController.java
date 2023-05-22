@@ -86,8 +86,10 @@ public class ReadXmlController {
                         .filter(Files::isRegularFile)
                         .forEach(file -> {
                             try {
-                              //  totalLinesOfCode1.addAndGet(Files.readAllLines(file).size());
-                               totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
+                                totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
+                                // totalLinesOfCode.addAndGet(Files.readAllLines(file, StandardCharsets.UTF_8).size());
+                                //totalLinesOfCode.addAndGet(Files.readAllLines(file, StandardCharsets.UTF_8).);
+//                            totalLinesOfCode.addAndGet(Files.readAllLines(file, Charset.forName("ISO-8859-1")).size());
 
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -117,6 +119,10 @@ public class ReadXmlController {
                 response.put("license", nodeJsInfo.get("license"));
                 response.put("dependencies", dependencies);
 
+                //test
+                Map<String, String> dependencies1 = getDependenciesFromPackageJsonFile(packageJsonFile);
+                //System.out.println(dependencies1);
+                response.put("LatestVesrsion",dependencies1);
 
                 // delete the cloned repository from the provided path
                 FileUtils.deleteDirectory(new File(repoPath));
@@ -224,6 +230,33 @@ public class ReadXmlController {
             }
         } catch (ParserConfigurationException | SAXException e) {
             throw new IOException("Failed to parse pom.xml file.", e);
+        }
+        return dependencies;
+    }
+
+    private String getLatestVersion(String dependencyName) throws IOException {
+        Process process = Runtime.getRuntime().exec("npm view " + dependencyName + " version");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String latestVersion = reader.lines().collect(Collectors.joining());
+        return latestVersion;
+    }
+
+    private Map<String, String> getDependenciesFromPackageJsonFile(File packageJsonFile) throws IOException {
+        Map<String, String> dependencies = new HashMap<>();
+        ObjectMapper mapper = new ObjectMapper();
+        try (Reader reader = new FileReader(packageJsonFile)) {
+            Map<String, Object> packageJsonContent = mapper.readValue(reader, new TypeReference<Map<String, Object>>() {});
+            if (packageJsonContent.containsKey("dependencies")) {
+                Map<String, Object> dependencyMap = (Map<String, Object>) packageJsonContent.get("dependencies");
+                for (Map.Entry<String, Object> entry : dependencyMap.entrySet()) {
+                    String dependencyName = entry.getKey();
+                    String version = (String) entry.getValue();
+                    String latestVersion = getLatestVersion(dependencyName);
+                    dependencies.put(dependencyName, latestVersion);
+                }
+            }
+        } catch (JsonProcessingException e) {
+            throw new IOException("Failed to parse package.json file: " + packageJsonFile.getAbsolutePath(), e);
         }
         return dependencies;
     }
