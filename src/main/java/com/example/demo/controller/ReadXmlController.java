@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -20,13 +21,9 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -69,6 +66,7 @@ public class ReadXmlController {
                 String springBootVersion = getVersionFromPomXmlFile(pomXmlFile);
                 Map<String, String> dependencies = getDependenciesFromPomXmlFile(pomXmlFile);
                 Properties applicationProperties = getPropertiesFromFile(applicationPropertiesFile);
+                Map<String, String> dependencies1 = getDependenciesFromPomXmlFile1(pomXmlFile);
 
 
                 // delete the cloned repository from the provided path
@@ -76,7 +74,7 @@ public class ReadXmlController {
 
                 // return the Spring Boot project info
                 return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "version", springBootVersion, "properties", applicationProperties, "dependencies", dependencies, "totalLinesOfCode", totalLinesOfCode.get()));
+                        Map.of("type", fileType, "version", springBootVersion,"LatestVesions",dependencies1, "properties", applicationProperties, "dependencies", dependencies, "totalLinesOfCode", totalLinesOfCode.get()));
             }
             else if (fileType.equals("Node.js")) {
 
@@ -233,6 +231,60 @@ public class ReadXmlController {
         }
         return dependencies;
     }
+
+
+    private String getLatestVersion1(String groupId, String artifactId) throws IOException {
+        String command = "mvn versions:display-latest-versions -Dincludes=" + groupId + ":" + artifactId;
+        Process process = Runtime.getRuntime().exec(command);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String latestVersion = reader.lines().collect(Collectors.joining());
+        return latestVersion;
+    }
+
+    private Map<String, String> getDependenciesFromPomXmlFile1(File pomXmlFile) throws IOException {
+        Map<String, String> dependencies = new HashMap<>();
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        try {
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document document = builder.parse(pomXmlFile);
+            Element root = document.getDocumentElement();
+            NodeList dependencyNodes = root.getElementsByTagName("dependency");
+            for (int i = 0; i < dependencyNodes.getLength(); i++) {
+                Node dependencyNode = dependencyNodes.item(i);
+                if (dependencyNode.getNodeType() == Node.ELEMENT_NODE) {
+                    Element dependencyElement = (Element) dependencyNode;
+                    String groupId = getTextContent(dependencyElement, "groupId");
+                    String artifactId = getTextContent(dependencyElement, "artifactId");
+                    String version = getTextContent(dependencyElement, "version");
+                    String latestVersion = getLatestVersion1(groupId, artifactId);
+                    dependencies.put(groupId + ":" + artifactId, latestVersion);
+                }
+            }
+        } catch (ParserConfigurationException | SAXException e) {
+            throw new IOException("Failed to parse pom.xml file: " + pomXmlFile.getAbsolutePath(), e);
+        }
+        return dependencies;
+    }
+
+    private String getTextContent(Element element, String tagName) {
+        NodeList nodeList = element.getElementsByTagName(tagName);
+        if (nodeList.getLength() > 0) {
+            return nodeList.item(0).getTextContent();
+        }
+        return null;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 
     private String getLatestVersion(String dependencyName) throws IOException {
         Process process = Runtime.getRuntime().exec("npm view " + dependencyName + " version");
