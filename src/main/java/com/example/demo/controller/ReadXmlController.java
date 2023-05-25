@@ -66,7 +66,7 @@ public class ReadXmlController {
                 String springBootVersion = getVersionFromPomXmlFile(pomXmlFile);
                 Map<String, String> dependencies = getDependenciesFromPomXmlFile(pomXmlFile);
                 Properties applicationProperties = getPropertiesFromFile(applicationPropertiesFile);
-                Map<String, String> dependencies1 = getDependenciesFromPomXmlFile1(pomXmlFile);
+                Map<String, String> latestVersions = getDependenciesFromPomXmlFile1(pomXmlFile);
 
 
                 // delete the cloned repository from the provided path
@@ -74,7 +74,9 @@ public class ReadXmlController {
 
                 // return the Spring Boot project info
                 return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "version", springBootVersion,"LatestVesions",dependencies1, "properties", applicationProperties, "dependencies", dependencies, "totalLinesOfCode", totalLinesOfCode.get()));
+                        Map.of("type", fileType, "version", springBootVersion, "properties", applicationProperties, "dependencies", dependencies, "totalLinesOfCode", totalLinesOfCode.get(),"latestVersion1", latestVersions));
+//                        Map.of("LatestVesions",latestVersions));
+
             }
             else if (fileType.equals("Node.js")) {
 
@@ -232,32 +234,24 @@ public class ReadXmlController {
         return dependencies;
     }
 
-
-    private String getLatestVersion1(String groupId, String artifactId) throws IOException {
-        String command = "mvn versions:display-latest-versions -Dincludes=" + groupId + ":" + artifactId;
-        Process process = Runtime.getRuntime().exec(command);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String latestVersion = reader.lines().collect(Collectors.joining());
-        return latestVersion;
-    }
-
     private Map<String, String> getDependenciesFromPomXmlFile1(File pomXmlFile) throws IOException {
         Map<String, String> dependencies = new HashMap<>();
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         try {
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document document = builder.parse(pomXmlFile);
-            Element root = document.getDocumentElement();
-            NodeList dependencyNodes = root.getElementsByTagName("dependency");
+
+            NodeList dependencyNodes = document.getElementsByTagName("dependency");
             for (int i = 0; i < dependencyNodes.getLength(); i++) {
                 Node dependencyNode = dependencyNodes.item(i);
                 if (dependencyNode.getNodeType() == Node.ELEMENT_NODE) {
                     Element dependencyElement = (Element) dependencyNode;
-                    String groupId = getTextContent(dependencyElement, "groupId");
-                    String artifactId = getTextContent(dependencyElement, "artifactId");
-                    String version = getTextContent(dependencyElement, "version");
-                    String latestVersion = getLatestVersion1(groupId, artifactId);
-                    dependencies.put(groupId + ":" + artifactId, latestVersion);
+                    String groupId = getElementTextByTagName(dependencyElement, "groupId");
+                    String artifactId = getElementTextByTagName(dependencyElement, "artifactId");
+                    String version = getElementTextByTagName(dependencyElement, "version");
+
+                    String latestVersion = getLatestVersion1(artifactId);
+                    dependencies.put(artifactId, latestVersion);
                 }
             }
         } catch (ParserConfigurationException | SAXException e) {
@@ -266,25 +260,21 @@ public class ReadXmlController {
         return dependencies;
     }
 
-    private String getTextContent(Element element, String tagName) {
+    private String getElementTextByTagName(Element element, String tagName) {
         NodeList nodeList = element.getElementsByTagName(tagName);
         if (nodeList.getLength() > 0) {
-            return nodeList.item(0).getTextContent();
+            Node node = nodeList.item(0);
+            return node.getTextContent();
         }
         return null;
     }
 
-
-
-
-
-
-
-
-
-
-
-
+    private String getLatestVersion1(String dependencyName) throws IOException {
+        Process process = Runtime.getRuntime().exec("mvn -q -Dexec.executable=echo -Dexec.args='${" + dependencyName + ".version}' --non-recursive exec:exec");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String latestVersion = reader.lines().collect(Collectors.joining());
+        return latestVersion;
+    }
 
     private String getLatestVersion(String dependencyName) throws IOException {
         Process process = Runtime.getRuntime().exec("npm view " + dependencyName + " version");
