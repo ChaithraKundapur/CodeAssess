@@ -48,10 +48,6 @@ public class ReadXmlController {
                     .forEach(file -> {
                         try {
                             totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
-                           // totalLinesOfCode.addAndGet(Files.readAllLines(file, StandardCharsets.UTF_8).size());
-                            //totalLinesOfCode.addAndGet(Files.readAllLines(file, StandardCharsets.UTF_8).);
-//                            totalLinesOfCode.addAndGet(Files.readAllLines(file, Charset.forName("ISO-8859-1")).size());
-
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -87,10 +83,6 @@ public class ReadXmlController {
                         .forEach(file -> {
                             try {
                                 totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
-                                // totalLinesOfCode.addAndGet(Files.readAllLines(file, StandardCharsets.UTF_8).size());
-                                //totalLinesOfCode.addAndGet(Files.readAllLines(file, StandardCharsets.UTF_8).);
-//                            totalLinesOfCode.addAndGet(Files.readAllLines(file, Charset.forName("ISO-8859-1")).size());
-
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -250,7 +242,7 @@ public class ReadXmlController {
                     String artifactId = getElementTextByTagName(dependencyElement, "artifactId");
                     String version = getElementTextByTagName(dependencyElement, "version");
 
-                    String latestVersion = getLatestVersion1(artifactId);
+                    String latestVersion = getLatestVersion1(groupId,artifactId);
                     dependencies.put(artifactId, latestVersion);
                 }
             }
@@ -268,11 +260,43 @@ public class ReadXmlController {
         }
         return null;
     }
+//working
+//    private String getLatestVersion1(String dependencyName) throws IOException {
+//        Process process = Runtime.getRuntime().exec("mvn -q -Dexec.executable=echo -Dexec.args='${" + dependencyName + ".version}' --non-recursive exec:exec");
+//        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+//        String latestVersion = reader.lines().collect(Collectors.joining());
+//        return latestVersion;
+//    }
+//-----------------
 
-    private String getLatestVersion1(String dependencyName) throws IOException {
-        Process process = Runtime.getRuntime().exec("mvn -q -Dexec.executable=echo -Dexec.args='${" + dependencyName + ".version}' --non-recursive exec:exec");
+    private String getLatestVersion1(String groupId, String artifactId) throws IOException {
+        String command = "mvn versions:display-dependency-updates -Dincludes=" + groupId + ":" + artifactId;
+        Process process = Runtime.getRuntime().exec(command);
         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String latestVersion = reader.lines().collect(Collectors.joining());
+
+        StringBuilder outputBuilder = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            outputBuilder.append(line).append("\n");
+        }
+
+        String commandOutput = outputBuilder.toString();
+        System.out.println("Command Output:\n" + commandOutput); // Print the command output for debugging
+
+        // Parse the command output and extract the latest version
+        String latestVersion = null;
+        String[] lines = commandOutput.split("\n");
+        for (String currentLine : lines) {
+            if (currentLine.contains(groupId) && currentLine.contains(artifactId)) {
+                // Assuming the format of the line is: <groupId>:<artifactId> <currentVersion> -> <latestVersion>
+                String[] parts = currentLine.split(" -> ");
+                if (parts.length > 1) {
+                    latestVersion = parts[1].trim();
+                    break;
+                }
+            }
+        }
+
         return latestVersion;
     }
 
