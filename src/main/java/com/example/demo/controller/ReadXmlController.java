@@ -70,9 +70,7 @@ public class ReadXmlController {
 
                 // return the Spring Boot project info
                 return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "version", springBootVersion, "properties", applicationProperties, "dependencies", dependencies, "totalLinesOfCode", totalLinesOfCode.get(),"latestVersion1", latestVersions));
-//                        Map.of("LatestVesions",latestVersions));
-
+                        Map.of("type", fileType, "version", springBootVersion, "properties", applicationProperties, "dependencies", dependencies, "totalLinesOfCode", totalLinesOfCode.get(),"latestVersions", latestVersions));
             }
             else if (fileType.equals("Node.js")) {
 
@@ -91,6 +89,7 @@ public class ReadXmlController {
 
                 File packageJsonFile = new File(repoPath + "/package.json");
                 Map<String, Object> packageJsonContent = getPackageJsonContent(packageJsonFile);
+
                 // extract the Node.js project info
                 Map<String, Object> nodeJsInfo = new HashMap<>();
                 nodeJsInfo.put("name", packageJsonContent.get("name"));
@@ -98,10 +97,13 @@ public class ReadXmlController {
                 nodeJsInfo.put("description", packageJsonContent.get("description"));
                 nodeJsInfo.put("author", packageJsonContent.get("author"));
                 nodeJsInfo.put("license", packageJsonContent.get("license"));
+
                 // extract dependencies
                 Map<String, Object> dependencies = (Map<String, Object>) packageJsonContent.get("dependencies");
+
                 // return the Node.js project info and dependencies
                 Map<String, Object> response = new HashMap<>();
+
                 response.put("totalLinesOfCode", totalLinesOfCode1.get());
                 response.put("type", fileType);
                 response.put("name", nodeJsInfo.get("name"));
@@ -111,9 +113,8 @@ public class ReadXmlController {
                 response.put("license", nodeJsInfo.get("license"));
                 response.put("dependencies", dependencies);
 
-                //test
+
                 Map<String, String> dependencies1 = getDependenciesFromPackageJsonFile(packageJsonFile);
-                //System.out.println(dependencies1);
                 response.put("LatestVesrsion",dependencies1);
 
                 // delete the cloned repository from the provided path
@@ -208,16 +209,13 @@ public class ReadXmlController {
                 String version = "LATEST";
                 for (int j = 0; j < dependencyChildren.getLength(); j++) {
                     Node node = dependencyChildren.item(j);
-                    if (node.getNodeName().equals("groupId")) {
-                        groupId = node.getTextContent();
-                    } else if (node.getNodeName().equals("artifactId")) {
+                    if (node.getNodeName().equals("artifactId")) {
                         artifactId = node.getTextContent();
-                    } else if (node.getNodeName().equals("version")) {
-                        version = node.getTextContent();
+                        break; // Stop iterating further if artifactId is found
                     }
                 }
-                if (!groupId.isEmpty() && !artifactId.isEmpty()) {
-                    dependencies.put(groupId + ":" + artifactId, version);
+                if (!artifactId.isEmpty()) {
+                    dependencies.put(artifactId, version);
                 }
             }
         } catch (ParserConfigurationException | SAXException e) {
@@ -225,6 +223,22 @@ public class ReadXmlController {
         }
         return dependencies;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     private Map<String, String> getDependenciesFromPomXmlFile1(File pomXmlFile) throws IOException {
         Map<String, String> dependencies = new HashMap<>();
@@ -273,7 +287,6 @@ public class ReadXmlController {
         }
 
         String commandOutput = outputBuilder.toString();
-        System.out.println("Command Output:\n" + commandOutput); // Print the command output for debugging
 
         // Parse the command output and extract the latest version
         String latestVersion = null;
