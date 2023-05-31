@@ -260,14 +260,6 @@ public class ReadXmlController {
         }
         return null;
     }
-//working
-//    private String getLatestVersion1(String dependencyName) throws IOException {
-//        Process process = Runtime.getRuntime().exec("mvn -q -Dexec.executable=echo -Dexec.args='${" + dependencyName + ".version}' --non-recursive exec:exec");
-//        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-//        String latestVersion = reader.lines().collect(Collectors.joining());
-//        return latestVersion;
-//    }
-//-----------------
 
     private String getLatestVersion1(String groupId, String artifactId) throws IOException {
         String command = "mvn versions:display-dependency-updates -Dincludes=" + groupId + ":" + artifactId;
@@ -295,6 +287,10 @@ public class ReadXmlController {
                     break;
                 }
             }
+        }
+
+        if (latestVersion == null) {
+            latestVersion = "-";
         }
 
         return latestVersion;
