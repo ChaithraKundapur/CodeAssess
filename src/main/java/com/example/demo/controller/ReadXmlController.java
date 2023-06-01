@@ -63,6 +63,7 @@ public class ReadXmlController {
                 Map<String, String> dependencies = getDependenciesFromPomXmlFile(pomXmlFile);
                 Properties applicationProperties = getPropertiesFromFile(applicationPropertiesFile);
                 Map<String, String> latestVersions = getDependenciesFromPomXmlFile1(pomXmlFile);
+                String javaVersion = getJavaVersion(pomXmlFile);
 
 
                 // delete the cloned repository from the provided path
@@ -70,7 +71,7 @@ public class ReadXmlController {
 
                 // return the Spring Boot project info
                 return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "version", springBootVersion, "properties", applicationProperties, "dependencies", dependencies, "totalLinesOfCode", totalLinesOfCode.get(),"latestVersions", latestVersions));
+                        Map.of("type", fileType, "SpringBootVersion", springBootVersion, "properties", applicationProperties, "dependencies", dependencies, "TotalLinesOfCode", totalLinesOfCode.get(),"LatestVersions", latestVersions,"JavaVersion",javaVersion));
             }
             else if (fileType.equals("Node.js")) {
 
@@ -116,6 +117,7 @@ public class ReadXmlController {
 
                 Map<String, String> dependencies1 = getDependenciesFromPackageJsonFile(packageJsonFile);
                 response.put("LatestVesrsion",dependencies1);
+
 
                 // delete the cloned repository from the provided path
                 FileUtils.deleteDirectory(new File(repoPath));
@@ -223,22 +225,6 @@ public class ReadXmlController {
         }
         return dependencies;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     private Map<String, String> getDependenciesFromPomXmlFile1(File pomXmlFile) throws IOException {
         Map<String, String> dependencies = new HashMap<>();
@@ -358,6 +344,16 @@ public class ReadXmlController {
         } catch (JsonProcessingException e) {
             throw new IOException("Failed to parse package.json file: " + file.getAbsolutePath(), e);
         }
+    }
+    private String getJavaVersion(File pomXmlFile) throws ParserConfigurationException, IOException, SAXException {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document document = builder.parse(pomXmlFile);
+
+        Element propertiesElement = (Element) document.getElementsByTagName("properties").item(0);
+        String javaVersion = getElementTextByTagName(propertiesElement, "java.version");
+
+        return javaVersion;
     }
 
 
