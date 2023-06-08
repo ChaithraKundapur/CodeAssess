@@ -21,12 +21,10 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 
@@ -42,16 +40,16 @@ public class ReadXmlController {
         try {
 
             // Traverse all files in the repository and count total lines of code
-            AtomicInteger totalLinesOfCode = new AtomicInteger(0);
-            Files.walk(Path.of(repoPath))
-                    .filter(Files::isRegularFile)
-                    .forEach(file -> {
-                        try {
-                            totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    });
+//            AtomicInteger totalLinesOfCode = new AtomicInteger(0);
+//            Files.walk(Path.of(repoPath))
+//                    .filter(Files::isRegularFile)
+//                    .forEach(file -> {
+//                        try {
+//                            totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+//                    });
 
 
             // Parse the appropriate file depending on the project type
@@ -71,21 +69,21 @@ public class ReadXmlController {
 
                 // return the Spring Boot project info
                 return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "SpringBootVersion", springBootVersion, "properties", applicationProperties, "dependencies", dependencies, "TotalLinesOfCode", totalLinesOfCode.get(),"LatestVersions", latestVersions,"JavaVersion",javaVersion));
+                        Map.of("type", fileType, "SpringBootVersion", springBootVersion, "properties", applicationProperties, "dependencies", dependencies, "LatestVersion", latestVersions,"JavaVersion",javaVersion));
             }
             else if (fileType.equals("Node.js")) {
 
                 // Traverse all files in the repository and count total lines of code
-                AtomicInteger totalLinesOfCode1 = new AtomicInteger(0);
-                Files.walk(Path.of(repoPath))
-                        .filter(Files::isRegularFile)
-                        .forEach(file -> {
-                            try {
-                                totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        });
+//                AtomicInteger totalLinesOfCode1 = new AtomicInteger(0);
+//                Files.walk(Path.of(repoPath))
+//                        .filter(Files::isRegularFile)
+//                        .forEach(file -> {
+//                            try {
+//                                totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                            }
+//                        });
 
 
                 File packageJsonFile = new File(repoPath + "/package.json");
@@ -105,7 +103,7 @@ public class ReadXmlController {
                 // return the Node.js project info and dependencies
                 Map<String, Object> response = new HashMap<>();
 
-                response.put("totalLinesOfCode", totalLinesOfCode1.get());
+//                response.put("totalLinesOfCode", totalLinesOfCode1.get());
                 response.put("type", fileType);
                 response.put("name", nodeJsInfo.get("name"));
                 response.put("version", nodeJsInfo.get("version"));
@@ -116,7 +114,7 @@ public class ReadXmlController {
 
 
                 Map<String, String> dependencies1 = getDependenciesFromPackageJsonFile(packageJsonFile);
-                response.put("LatestVesrsion",dependencies1);
+                response.put("LatestVersion",dependencies1);
 
 
                 // delete the cloned repository from the provided path
