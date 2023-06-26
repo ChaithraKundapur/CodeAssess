@@ -34,23 +34,10 @@ import java.util.stream.Collectors;
 public class ReadXmlController {
 
     @PostMapping("/parse")
-    public ResponseEntity<?> cloneGitHubPublicRepo(@RequestBody Map<String, String> request) {
+    public Object cloneGitHubPublicRepo(@RequestBody Map<String, String> request) {
         String repoPath = request.get("repoPath");
 
         try {
-
-            // Traverse all files in the repository and count total lines of code
-//            AtomicInteger totalLinesOfCode = new AtomicInteger(0);
-//            Files.walk(Path.of(repoPath))
-//                    .filter(Files::isRegularFile)
-//                    .forEach(file -> {
-//                        try {
-//                            totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                        }
-//                    });
-
 
             // Parse the appropriate file depending on the project type
             String fileType = determineProjectType(Path.of(repoPath));
@@ -72,19 +59,6 @@ public class ReadXmlController {
                         Map.of("type", fileType, "SpringBootVersion", springBootVersion, "properties", applicationProperties, "dependencies", dependencies, "LatestVersion", latestVersions,"JavaVersion",javaVersion));
             }
             else if (fileType.equals("Node.js")) {
-
-                // Traverse all files in the repository and count total lines of code
-//                AtomicInteger totalLinesOfCode1 = new AtomicInteger(0);
-//                Files.walk(Path.of(repoPath))
-//                        .filter(Files::isRegularFile)
-//                        .forEach(file -> {
-//                            try {
-//                                totalLinesOfCode.addAndGet(Files.readAllLines(file).size());
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            }
-//                        });
-
 
                 File packageJsonFile = new File(repoPath + "/package.json");
                 Map<String, Object> packageJsonContent = getPackageJsonContent(packageJsonFile);
@@ -122,6 +96,16 @@ public class ReadXmlController {
 
                 return ResponseEntity.ok().body(response);
             }
+
+            else if (fileType.equals("PHP")) {
+                // delete the cloned repository from the provided path
+                FileUtils.deleteDirectory(new File(repoPath));
+
+                // Return the PHP project info
+                return ResponseEntity.ok().body(
+                        Map.of("type", fileType));
+            }
+
             else {
                 // unsupported project type
                 // delete the cloned repository from the provided path
@@ -149,6 +133,12 @@ public class ReadXmlController {
         File packageJsonFile = new File(projectDirectory.toString() + "/package.json");
         if (packageJsonFile.exists()) {
             return "Node.js";
+        }
+
+        // Check if the directory contains an index.php file
+        File indexPhpFile = new File(projectDirectory.toString() + "/index.php");
+        if (indexPhpFile.exists()) {
+            return "PHP";
         }
 
         // unsupported project type
@@ -285,7 +275,6 @@ public class ReadXmlController {
                 }
             }
         }
-
         if (latestVersion == null) {
             latestVersion = "-";
         }
@@ -353,7 +342,5 @@ public class ReadXmlController {
 
         return javaVersion;
     }
-
-
     }
 
