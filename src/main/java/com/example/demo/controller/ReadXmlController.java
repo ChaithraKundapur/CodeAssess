@@ -110,15 +110,15 @@ public class ReadXmlController {
 
             else if (fileType.equals("Spring Boot Gradle")) {
                 File buildGradleFile = new File(repoPath + "/build.gradle");
-                Map<String, String> dependencies = getDependenciesFromBuildGradleFile(buildGradleFile);
                 String springBootVersion = getSpringBootVersionFromBuildGradleFile(buildGradleFile);
+                Map<String, String> dependencies = getDependenciesFromBuildGradleFile(buildGradleFile);
+                Map<String, String> latestVersions = getLatestDependencyVersions(buildGradleFile);
 
-
-                // delete the cloned repository from the provided path
+                // Delete the cloned repository from the provided path
                 FileUtils.deleteDirectory(new File(repoPath));
 
                 return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "SpringBootVersion", springBootVersion, "dependencies", dependencies));
+                        Map.of("type", fileType, "SpringBootVersion", springBootVersion, "dependencies", dependencies, "LatestVersion", latestVersions));
             }
             else {
                 // unsupported project type
@@ -180,6 +180,27 @@ public class ReadXmlController {
         }
         reader.close();
         return version;
+    }
+
+    private Map<String, String> getLatestDependencyVersions(File buildGradleFile) throws IOException {
+        Map<String, String> latestVersions = new HashMap<>();
+
+        BufferedReader reader = new BufferedReader(new FileReader(buildGradleFile));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            line = line.trim();
+            if (line.startsWith("implementation ") || line.startsWith("compile ")) {
+                String[] parts = line.split(":");
+                if (parts.length >= 3) {
+                    String name = parts[1];
+                    String version = parts[2].replaceAll("[^\\d.]", "");
+                    latestVersions.put(name, version);
+                }
+            }
+        }
+        reader.close();
+
+        return latestVersions;
     }
 
     private Map<String, String> getDependenciesFromBuildGradleFile(File buildGradleFile) throws IOException {
