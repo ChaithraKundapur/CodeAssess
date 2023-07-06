@@ -25,6 +25,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
@@ -41,7 +43,7 @@ public class ReadXmlController {
 
             // Parse the appropriate file depending on the project type
             String fileType = determineProjectType(Path.of(repoPath));
-            if (fileType.equals("Spring Boot")) {
+            if (fileType.equals("Spring Boot Maven")) {
                 File pomXmlFile = new File(repoPath + "/pom.xml");
                 File applicationPropertiesFile = new File(repoPath + "/src/main/resources/application.properties");
                 String springBootVersion = getVersionFromPomXmlFile(pomXmlFile);
@@ -77,7 +79,7 @@ public class ReadXmlController {
                 // return the Node.js project info and dependencies
                 Map<String, Object> response = new HashMap<>();
 
-//                response.put("totalLinesOfCode", totalLinesOfCode1.get());
+//              response.put("totalLinesOfCode", totalLinesOfCode1.get());
                 response.put("type", fileType);
                 response.put("name", nodeJsInfo.get("name"));
                 response.put("version", nodeJsInfo.get("version"));
@@ -106,6 +108,18 @@ public class ReadXmlController {
                         Map.of("type", fileType));
             }
 
+            else if (fileType.equals("Spring Boot Gradle")) {
+                File buildGradleFile = new File(repoPath + "/build.gradle");
+                Map<String, String> dependencies = getDependenciesFromBuildGradleFile(buildGradleFile);
+                String springBootVersion = getSpringBootVersionFromBuildGradleFile(buildGradleFile);
+
+
+                // delete the cloned repository from the provided path
+                FileUtils.deleteDirectory(new File(repoPath));
+
+                return ResponseEntity.ok().body(
+                        Map.of("type", fileType, "SpringBootVersion", springBootVersion, "dependencies", dependencies));
+            }
             else {
                 // unsupported project type
                 // delete the cloned repository from the provided path
@@ -126,7 +140,12 @@ public class ReadXmlController {
         // Check if the directory contains a pom.xml file
         File pomXmlFile = new File(projectDirectory.toString() + "/pom.xml");
         if (pomXmlFile.exists()) {
-            return "Spring Boot";
+            return "Spring Boot Maven";
+        }
+
+        File buildGradleFile = new File(projectDirectory.toString() + "/build.gradle");
+        if (buildGradleFile.exists()) {
+            return "Spring Boot Gradle";
         }
 
         // Check if the directory contains a package.json file
@@ -143,6 +162,49 @@ public class ReadXmlController {
 
         // unsupported project type
         return "Unsupported";
+    }
+
+    private String getSpringBootVersionFromBuildGradleFile(File buildGradleFile) throws IOException {
+        String version = "";
+        BufferedReader reader = new BufferedReader(new FileReader(buildGradleFile));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.contains("id 'org.springframework.boot'") && line.contains("version")) {
+                Pattern pattern = Pattern.compile("version\\s+['\"]([^'\"]+)['\"]");
+                Matcher matcher = pattern.matcher(line);
+                if (matcher.find()) {
+                    version = matcher.group(1);
+                    break;
+                }
+            }
+        }
+        reader.close();
+        return version;
+    }
+
+    private Map<String, String> getDependenciesFromBuildGradleFile(File buildGradleFile) throws IOException {
+        Map<String, String> dependencies = new HashMap<>();
+        BufferedReader reader = new BufferedReader(new FileReader(buildGradleFile));
+        String line;
+        boolean insideDependenciesBlock = false;
+        while ((line = reader.readLine()) != null) {
+            line = line.trim();
+            if (line.equals("dependencies {")) {
+                insideDependenciesBlock = true;
+            } else if (line.equals("}")) {
+                insideDependenciesBlock = false;
+            } else if (insideDependenciesBlock) {
+                String[] parts = line.split(":");
+                if (parts.length >= 2) {
+                    String name = parts[1];
+                    String version = parts.length >= 3 ? parts[2].replaceAll("[^\\d.]", "") : "latest";
+                    dependencies.put(name, version);
+
+                }
+            }
+        }
+        reader.close();
+        return dependencies;
     }
 
     private String getVersionFromPomXmlFile(File pomXmlFile) throws IOException {
@@ -343,4 +405,3 @@ public class ReadXmlController {
         return javaVersion;
     }
     }
-
