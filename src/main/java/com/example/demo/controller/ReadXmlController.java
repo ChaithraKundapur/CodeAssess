@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -21,6 +22,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +30,9 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+
+
 
 
 @CrossOrigin(origins = "*")
@@ -112,13 +117,12 @@ public class ReadXmlController {
                 File buildGradleFile = new File(repoPath + "/build.gradle");
                 String springBootVersion = getSpringBootVersionFromBuildGradleFile(buildGradleFile);
                 Map<String, String> dependencies = getDependenciesFromBuildGradleFile(buildGradleFile);
-                Map<String, String> latestVersions = getLatestDependencyVersions(buildGradleFile);
-
+                Map<String, String> latest = getLatestVersionsFromBuildGradleFile(buildGradleFile);
                 // Delete the cloned repository from the provided path
                 FileUtils.deleteDirectory(new File(repoPath));
 
                 return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "SpringBootVersion", springBootVersion, "dependencies", dependencies, "LatestVersion", latestVersions));
+                        Map.of("type", fileType, "SpringBootVersion", springBootVersion, "dependencies", dependencies,"latest", latest));
             }
             else {
                 // unsupported project type
@@ -182,27 +186,6 @@ public class ReadXmlController {
         return version;
     }
 
-    private Map<String, String> getLatestDependencyVersions(File buildGradleFile) throws IOException {
-        Map<String, String> latestVersions = new HashMap<>();
-
-        BufferedReader reader = new BufferedReader(new FileReader(buildGradleFile));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            line = line.trim();
-            if (line.startsWith("implementation ") || line.startsWith("compile ")) {
-                String[] parts = line.split(":");
-                if (parts.length >= 3) {
-                    String name = parts[1];
-                    String version = parts[2].replaceAll("[^\\d.]", "");
-                    latestVersions.put(name, version);
-                }
-            }
-        }
-        reader.close();
-
-        return latestVersions;
-    }
-
     private Map<String, String> getDependenciesFromBuildGradleFile(File buildGradleFile) throws IOException {
         Map<String, String> dependencies = new HashMap<>();
         BufferedReader reader = new BufferedReader(new FileReader(buildGradleFile));
@@ -217,15 +200,68 @@ public class ReadXmlController {
             } else if (insideDependenciesBlock) {
                 String[] parts = line.split(":");
                 if (parts.length >= 2) {
-                    String name = parts[1];
+                    String name = parts[1].replaceAll("[\"'\\)].*$", ""); // Remove the ending " or ' or ) and any characters after
                     String version = parts.length >= 3 ? parts[2].replaceAll("[^\\d.]", "") : "latest";
                     dependencies.put(name, version);
-
                 }
             }
         }
         reader.close();
         return dependencies;
+    }
+    public static Map<String, String> getLatestVersionsFromBuildGradleFile(File buildGradleFile) throws IOException {
+        // Run Gradle command to generate dependency updates report
+        String command = "./gradlew dependencyUpdates";
+        Process process = Runtime.getRuntime().exec(command, null, buildGradleFile.getParentFile());
+
+        // Read the output from the process
+        InputStream inputStream = process.getInputStream();
+        String output = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+        IOUtils.closeQuietly(inputStream);
+
+        // Parse the output to extract the latest versions
+        Map<String, String> latestVersions = parseLatestVersions(output);
+
+        return latestVersions;
+    }
+
+    private static Map<String, String> parseLatestVersions(String output) {
+        Map<String, String> latestVersions = new HashMap<>();
+
+        // Split the output into lines
+        String[] lines = output.split("\n");
+
+        // Process each line to extract the latest versions
+        for (String line : lines) {
+            // Assuming the format of each line is: <dependency> -> <latestVersion>
+            String[] parts = line.split(" -> ");
+            if (parts.length == 2) {
+                String dependency = parts[0].trim();
+                String latestVersion = parts[1].trim();
+
+                // Extract the artifact ID from the dependency string and remove the old version
+                int colonIndex = dependency.lastIndexOf(':');
+                if (colonIndex > 0) {
+                    String artifactId = dependency.substring(colonIndex + 1).trim();
+                    // Remove the old version from the artifact ID
+                    int openBracketIndex = artifactId.lastIndexOf('[');
+                    if (openBracketIndex > 0) {
+                        artifactId = artifactId.substring(0, openBracketIndex).trim();
+                    }
+                    // Remove the "]" at the end of the latest version
+                    if (latestVersion.endsWith("]")) {
+                        latestVersion = latestVersion.substring(0, latestVersion.length() - 1).trim();
+                    }
+
+                    // Check if the artifact ID is not a plugin
+                    if (!artifactId.contains(".gradle.plugin")) {
+                        latestVersions.put(artifactId, latestVersion);
+                    }
+                }
+            }
+        }
+
+        return latestVersions;
     }
 
     private String getVersionFromPomXmlFile(File pomXmlFile) throws IOException {
