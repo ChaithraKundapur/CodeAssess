@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -22,7 +21,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -115,14 +113,17 @@ public class ReadXmlController {
 
             else if (fileType.equals("Spring Boot Gradle")) {
                 File buildGradleFile = new File(repoPath + "/build.gradle");
+
+                // Fetch the latest versions after adding the plugin
+                Map<String, String> latestVersions = getLatestVersionsFromBuildGradleFile(buildGradleFile);
                 String springBootVersion = getSpringBootVersionFromBuildGradleFile(buildGradleFile);
                 Map<String, String> dependencies = getDependenciesFromBuildGradleFile(buildGradleFile);
-                Map<String, String> latest = getLatestVersionsFromBuildGradleFile(buildGradleFile);
+
                 // Delete the cloned repository from the provided path
                 FileUtils.deleteDirectory(new File(repoPath));
 
                 return ResponseEntity.ok().body(
-                        Map.of("type", fileType, "SpringBootVersion", springBootVersion, "dependencies", dependencies,"latest", latest));
+                        Map.of("type", fileType, "LatestVersion", latestVersions, "SpringBootVersion", springBootVersion, "dependencies", dependencies));
             }
             else {
                 // unsupported project type
@@ -186,7 +187,7 @@ public class ReadXmlController {
         return version;
     }
 
-    private Map<String, String> getDependenciesFromBuildGradleFile(File buildGradleFile) throws IOException {
+    private static Map<String, String> getDependenciesFromBuildGradleFile(File buildGradleFile) throws IOException {
         Map<String, String> dependencies = new HashMap<>();
         BufferedReader reader = new BufferedReader(new FileReader(buildGradleFile));
         String line;
@@ -209,18 +210,15 @@ public class ReadXmlController {
         reader.close();
         return dependencies;
     }
-    public static Map<String, String> getLatestVersionsFromBuildGradleFile(File buildGradleFile) throws IOException {
-        // Run Gradle command to generate dependency updates report
-        String command = "./gradlew dependencyUpdates";
-        Process process = Runtime.getRuntime().exec(command, null, buildGradleFile.getParentFile());
 
-        // Read the output from the process
-        InputStream inputStream = process.getInputStream();
-        String output = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
-        IOUtils.closeQuietly(inputStream);
+    private static Map<String, String> getLatestVersionsFromBuildGradleFile(File buildGradleFile) throws IOException {
+        Map<String, String> dependencies = getDependenciesFromBuildGradleFile(buildGradleFile);
+        Map<String, String> latestVersions = new HashMap<>();
 
-        // Parse the output to extract the latest versions
-        Map<String, String> latestVersions = parseLatestVersions(output);
+        // Set "-" as the version for each dependency
+        for (String dependency : dependencies.keySet()) {
+            latestVersions.put(dependency, "-");
+        }
 
         return latestVersions;
     }
@@ -461,4 +459,5 @@ public class ReadXmlController {
 
         return javaVersion;
     }
+
     }
